@@ -21,10 +21,22 @@ from .netverify import verify_network
 
 
 def claim_faucet(cfg: Cfg, dry_run: bool = False) -> dict:
+    """Claim the faucet; a cooldown is NOT fatal — the cycle proceeds from the
+    existing balance (spend still credits even without a fresh grant)."""
     if dry_run:
         ledger_append({"op": "faucet", "ok": True, "dry_run": True, "net": cfg.active_network})
         return {"dry_run": True}
-    res = run_cli(cfg, "--network", cfg.active_network, "faucet", "request", cfg.identity["address"], retries=1)
+    try:
+        res = run_cli(cfg, "--network", cfg.active_network, "faucet", "request", cfg.identity["address"], retries=1)
+    except FlopkitError as e:
+        if "cooldown" in str(e) or "retryable" in str(e):
+            ledger_append({"op": "faucet", "ok": False, "net": cfg.active_network, "cooldown": True, "note": str(e)[:300]})
+            return {"cooldown": True, "note": str(e)[:300]}
+        raise
+    if res.get("error") or res.get("retryable"):
+        retry = str(res.get("next") or res.get("error"))
+        ledger_append({"op": "faucet", "ok": False, "net": cfg.active_network, "cooldown": True, "note": retry[:300]})
+        return {"cooldown": True, "note": retry[:300]}
     ledger_append({"op": "faucet", "ok": True, "net": cfg.active_network,
                    "tx": res.get("tx_hash"), "amount": res.get("amount")})
     return res
@@ -113,11 +125,13 @@ def write_report(cfg: Cfg, s: dict) -> Path:
     d.mkdir(parents=True, exist_ok=True)
     p = d / f"{utc_day()}.md"
     cb, ca = s.get("credit_before") or {}, s.get("credit_after") or s.get("credit_before") or {}
+    faucet = s.get("faucet") or {}
+    faucet_txt = faucet.get("tx") or ("cooldown — " + str(faucet.get("note")) if faucet.get("cooldown") else "dry-run")
     lines = [
         f"# FLOP participation report — {utc_day()} ({cfg.active_network}{', dry-run' if s.get('dry_run') else ''})",
         "",
         f"- chain identity: genesis {s.get('verify', {}).get('genesis')} spec {s.get('verify', {}).get('spec_version')} (pinned+verified)",
-        f"- faucet: {s.get('faucet', {}).get('tx', 'dry-run')}",
+        f"- faucet: {faucet_txt}",
         f"- sessions this cycle: {len(s.get('sessions', []))} (caps: per-req {cfg.caps.get('max_flop_per_request')}, day {cfg.caps.get('daily_budget_flop')})",
         f"- settled/finalized channels: {len(s.get('settled', []))}",
         f"- credited settled inference spend: {cb.get('total_spent_flop', 0):g} → {ca.get('total_spent_flop', 0):g} FLOP "

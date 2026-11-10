@@ -8,7 +8,9 @@ ourselves so a swapped endpoint can never receive signed spend.
 
 from __future__ import annotations
 
-from .core import Cfg, FlopkitError, run_cli, keystore_env
+import time
+
+from .core import Cfg, FlopkitError, run_cli
 
 
 def verify_network(cfg: Cfg, net_name: str | None = None) -> dict:
@@ -20,7 +22,13 @@ def verify_network(cfg: Cfg, net_name: str | None = None) -> dict:
             f"network '{name}' has no pinned expected_genesis — "
             "run `flopkit arm-testnet <genesis> ...` first. Refusing to operate."
         )
-    res = run_cli(cfg, "network", "status", "--network", name, retries=3)
+    res: dict = {}
+    for _attempt in range(3):  # devnet WSS is flaky: retry transient unreachability before failing
+        res = run_cli(cfg, "network", "status", "--network", name, retries=3)
+        rpc = res.get("rpc") if isinstance(res.get("rpc"), dict) else {}
+        if rpc.get("reachable") is not False and rpc.get("genesis_hash"):
+            break
+        time.sleep(5)
     rpc = res.get("rpc") if isinstance(res.get("rpc"), dict) else {}
     genesis = rpc.get("genesis_hash")
     if genesis != expected:

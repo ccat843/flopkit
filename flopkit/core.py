@@ -160,13 +160,19 @@ def run_cli(cfg: Cfg, *args: str, timeout: int | None = None, env_extra: dict | 
 def _extract_json(text: str) -> dict | None:
     if not text:
         return None
-    start = text.find("{")
-    if start < 0:
-        return None
-    try:
-        return json.loads(text[start:])
-    except json.JSONDecodeError:
-        return None
+    # The CLI logs noise around JSON; on errors a structured payload may follow
+    # human-readable lines. Try every '{' start candidate (earliest first) and
+    # accept the first that parses to a dict through the end of the text.
+    i = text.find("{")
+    while i != -1:
+        try:
+            obj = json.loads(text[i:])
+            if isinstance(obj, dict):
+                return obj
+        except json.JSONDecodeError:
+            pass
+        i = text.find("{", i + 1)
+    return None
 
 
 def keystore_args(cfg: Cfg) -> list[str]:
