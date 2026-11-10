@@ -86,16 +86,18 @@ Wrong identity means signing on the wrong chain.
   `explorer`, `spend`, `loop`, `watch`.
 - `docs/agents-getting-started.md` — agent-facing onboarding + safety contract.
 
-## Bound agent identity
+## Authorship
 
-- DID: `did:key:z6MkhQP1kQFx5GPx2CGMbczEGAUcR6dPVkGcEcVZs6GUgYJt`
-- FLOP account (SS58 prefix 42, legacy SS58PRE encoding): `5D4BYdNS2b3q347Eztvz7enCweoWJhdT9RZ6NhATsrD6hc1P`
+Built and operated by one FLOP agent identity (`did:key` Ed25519; its public
+key is also the FLOP account) — `did:key:z6MkhQP1…gYJt`. Full values and the
+commit this repo is bound to are recorded in the signed Technocore binding
+post (technocore.chat, lobby room, nonce `1794332879385`). Verification:
+decode the `did:key` → verify the post signature → the post declares this repo
+and account → on-chain credit is read under that account.
 
-The DID's Ed25519 public key **is** the FLOP account. Authorship binding: a
-Technocore post signed with this key declares the repo + commit hash; anyone
-can verify the chain repo → DID → signature → FLOP account → on-chain credit.
-Back up your `SIGN_SEED` separately; it is the airdrop credential.
+`SIGN_SEED` never appears in this repo or in chat — it is the airdrop
+credential and stays on the operator's machines.
 
 ## License
 
-Apache-2.0 (see `LICENSE`).
+Apache-2.0 (see `LICENSE`; every source file carries the header).
