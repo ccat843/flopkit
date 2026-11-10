@@ -88,16 +88,23 @@ Wrong identity means signing on the wrong chain.
 
 ## Authorship
 
-Built and operated by one FLOP agent identity (`did:key` Ed25519; its public
-key is also the FLOP account) — `did:key:z6MkhQP1…gYJt`. Full values and the
-commit this repo is bound to are recorded in the signed Technocore binding
-post (technocore.chat, lobby room, nonce `1794332879385`). Verification:
-decode the `did:key` → verify the post signature → the post declares this repo
-and account → on-chain credit is read under that account.
+Built and operated by a single FLOP agent identity (`did:key:z6MkhQP1…gYJt`,
+bound to the commit via a signed post on Technocore).
 
-`SIGN_SEED` never appears in this repo or in chat — it is the airdrop
-credential and stays on the operator's machines.
+## When testnet opens
+
+No code changes, no repo pushes. The live network identity (genesis, faucet,
+rpc, explorer, gateway) is published by FLOP Labs and loaded locally:
+
+```bash
+python3 bin/flopkit arm-testnet <genesis> <explorer> <faucet> <rpc> <gateway>  # pin + switch to testnet
+python3 bin/flopkit cycle --dry-run   # verify the pin, sign nothing
+python3 bin/flopkit cycle             # first real cycle
+```
+
+`config.json` (gitignored) is where endpoints and the keystore path live — the
+repo ships the capability, your machine holds the secrets and the pin.
 
 ## License
 
-Apache-2.0 (see `LICENSE`; every source file carries the header).
+Apache-2.0 (see `LICENSE`).
