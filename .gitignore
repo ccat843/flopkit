@@ -1,0 +1,6 @@
+data/
+__pycache__/
+*.pyc
+.venv/
+# machine-specific + identity paths: never commit the real one
+config.json

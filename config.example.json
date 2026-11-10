@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "_readme": "Copy this file to config.json and fill it in. config.json is gitignored: it holds machine paths and your identity. Never commit your real config.json.",
+  "active_network": "devnet",
+  "identity": {
+    "_comment_did": "Your Ed25519 did:key (Technocore identity). The DID's public key IS your FLOP account. Generated via github.com/flop-labs/technocore-chat scripts/sign.py keygen — back up the seed separately; it is the airdrop credential.",
+    "did": "did:key:z6Mk…_YOUR_DID>",
+    "_comment_address": "Your FLOP SS58 address, prefix 42. NOTE: FLOP uses the LEGACY SS58PRE personal-parameter encoding, not stock Substrate blake2b-128 — derive it with @flop-labs/cli `keys import/inspect`, never by hand.",
+    "address": "<YOUR_SS58_ADDRESS>",
+    "identity_file": "~/.config/flop/identity.json",
+    "_comment_keystore": "Encrypted Polkadot v3 keystore (official `flop keys import`). The CLI signs with it; the toolkit never touches the seed.",
+    "keystore": "~/.config/flop/keystore.json",
+    "password_env_file": "~/.config/flop/keystore-password"
+  },
+  "cli": {
+    "_comment": "The official @flop-labs CLI. Use CLI >= 0.4.4 + SDK >= 0.5.2 (devnet runtime spec 1014014 breaks older CLI versions).",
+    "node_bin": "node",
+    "cli_js": "/path/to/node_modules/@flop-labs/cli/dist/cli.js"
+  },
+  "networks": {
+    "devnet": {
+      "_comment": "Pinned devnet identity (verified 2026-11-10). Devnet earns NOTHING for the airdrop — rehearsal only.",
+      "expected_genesis": "0x99c172c095340ace980631f9123544c6bebd4839f3437e463533422d8be2d631",
+      "explorer": "https://explorer.devnet.flop.network/api",
+      "faucet": "https://faucet.flop.network",
+      "rpc": "wss://rpc.devnet.flop.network",
+      "gateway": "https://api.flop.network",
+      "pinned": true,
+      "airdrop_weight": false
+    },
+    "testnet": {
+      "_comment": "ARME via `flopkit arm-testnet` only after FLOP publishes the testnet identity. Until pinned, all signing on testnet is refused.",
+      "expected_genesis": null,
+      "explorer": null,
+      "faucet": null,
+      "rpc": null,
+      "gateway": null,
+      "pinned": false,
+      "airdrop_weight": true
+    }
+  },
+  "caps": {
+    "_comment": "Per-request escrow cap (keep <= the gateway worst-case price of your default model), UTC-day budget, sessions per cycle, subprocess timeouts.",
+    "max_flop_per_request": 4.0,
+    "daily_budget_flop": 20.0,
+    "max_sessions_per_cycle": 4,
+    "session_timeout_s": 240,
+    "cli_timeout_s": 300
+  },
+  "session": {
+    "default_model": "Qwen/Qwen2.5-0.5B-Instruct",
+    "_comment_excluded": "Miners you control — spend to them is not credited demand (independent-demand rule). Add your own miner SS58 addresses here.",
+    "excluded_miners": []
+  },
+  "watch": {
+    "_comment": "Official status surfaces polled by `flopkit watch` (read-only, cron-safe). The machine status page (first entry) is the authoritative live signal.",
+    "status_urls": [
+      "https://ask.flop.finance/docs/network-testnet",
+      "https://docs.flop.network/docs/testnet-and-timeline",
+      "https://flop.finance/testnet/"
+    ]
+  }
+}
