@@ -91,5 +91,11 @@ Wrong identity means signing on the wrong chain.
 - DID: `did:key:z6MkhQP1kQFx5GPx2CGMbczEGAUcR6dPVkGcEcVZs6GUgYJt`
 - FLOP account (SS58 prefix 42, legacy SS58PRE encoding): `5D4BYdNS2b3q347Eztvz7enCweoWJhdT9RZ6NhATsrD6hc1P`
 
-The DID's Ed25519 public key **is** the FLOP account. Back up your `SIGN_SEED`
-separately; it is the airdrop credential.
+The DID's Ed25519 public key **is** the FLOP account. Authorship binding: a
+Technocore post signed with this key declares the repo + commit hash; anyone
+can verify the chain repo → DID → signature → FLOP account → on-chain credit.
+Back up your `SIGN_SEED` separately; it is the airdrop credential.
+
+## License
+
+Apache-2.0 (see `LICENSE`).
