@@ -72,26 +72,35 @@ def settle_channels(cfg: Cfg, dry_run: bool = False) -> list[dict]:
     """
     if dry_run:
         return []
-    items = run_cli(cfg, *keystore_args(cfg), "--network", cfg.active_network,
-                    "channel", "list", env_extra=keystore_env(cfg), retries=2)
-    items = items.get("channels") or items.get("items") or (items if isinstance(items, list) else [])
+    # channel list is READ-ONLY: no keystore. Filter to our paying agent.
+    # Short per-call timeout: this runs inside a daily cycle, not a debug shell.
+    res = run_cli(cfg, "--network", cfg.active_network, "channel", "list",
+                  "--agent", cfg.identity["address"], retries=2, timeout=60)
+    items = res.get("channels") or res.get("items") or res.get("list") or (res if isinstance(res, list) else [])
     done = []
     for ch in items:
-        cid = ch.get("id") or ch.get("channelId")
-        state = str(ch.get("status", "")).lower()
-        if not cid or state in ("settled", "closed", "refunded"):
+        cid = ch.get("id") or ch.get("channelId") or ch.get("channel_id")
+        state = str(ch.get("status") or ch.get("state") or ch.get("phase") or "").lower()
+        if not cid:
+            continue
+        if state in ("settled", "closed", "refunded"):
             continue
         if state in ("force-settled", "force_settled", "dispute-ended") or ch.get("finalizable"):
             try:
                 fin = run_cli(cfg, *keystore_args(cfg), "--network", cfg.active_network,
-                              "channel", "finalize", str(cid), env_extra=keystore_env(cfg), retries=1)
+                              "channel", "finalize", str(cid), env_extra=keystore_env(cfg),
+                              retries=1, timeout=180)
                 done.append({"channel": cid, "finalized": True, "res_keys": sorted(fin.keys())})
                 ledger_append({"op": "settle", "ok": True, "net": cfg.active_network, "channel": cid, "finalized": True})
             except FlopkitError as e:
                 done.append({"channel": cid, "finalized": False, "pending": str(e)[:200]})
                 ledger_append({"op": "settle", "ok": False, "net": cfg.active_network, "channel": cid, "error": str(e)[:300]})
         else:
-            done.append({"channel": cid, "state": state, "note": "challenge window open — left pending"})
+            # Unknown/non-terminal state (incl. miner-answered-pending, challenge window):
+            # leave it. Never force-finalize a state we don't understand.
+            done.append({"channel": cid, "state": state or "unknown", "note": "pending — dispute window open or state unrecognized"})
+            ledger_append({"op": "settle", "ok": True, "net": cfg.active_network, "channel": cid,
+                           "finalized": False, "state": state or "unknown"})
     return done
 
 
