@@ -47,6 +47,27 @@ guessing.
 - Node 22+ with `@flop-labs/cli` installed (see config `cli.cli_js`).
 - An encrypted FLOP keystore + its password file (see config `identity.*`).
 
+## Quick start
+
+```bash
+git clone https://github.com/ccat843/flopkit && cd flopkit
+npm install @flop-labs/cli            # >= 0.4.4
+
+# one-time identity (skip if you already have a DID + keystore):
+#   1. generate an Ed25519 did:key with FLOP's official keygen
+#      (github.com/flop-labs/technocore-chat, scripts/sign.py keygen)
+#   2. back the seed up OFF this machine — it is the airdrop credential
+#   3. `flop keys import` it into an encrypted keystore
+
+cp config.example.json config.json    # gitignored: fill in identity paths, keystore, cli_js
+python3 bin/flopkit status            # identity + caps confirmed
+python3 bin/flopkit cycle --dry-run   # verifies the chain pin, signs nothing
+```
+
+**Handing it to an agent:** the repo is built to be pointed at by a coding
+agent — `docs/agents-getting-started.md` is the agent entry point: full
+setup, command loop, and the safety contract (what it must never do).
+
 ## Commands
 
 ```bash
