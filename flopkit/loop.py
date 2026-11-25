@@ -110,11 +110,17 @@ def cycle(cfg: Cfg, dry_run: bool = False, tasks: int = 2) -> dict:
         die("testnet profile is not pinned — run `flopkit arm-testnet` first; refusing to sign on an unverified chain")
 
     verify = verify_network(cfg)
-    before = explorer.credit_snapshot(cfg)
+    try:
+        before = explorer.credit_snapshot(cfg)
+        after: dict | None = explorer.credit_snapshot(cfg) if not dry_run else before
+    except explorer.Unavailable as e:
+        if not dry_run:
+            raise FlopkitError(f"credit verification unavailable: {e}") from e
+        before = {"unavailable": True, "note": str(e)}
+        after = before
     faucet = claim_faucet(cfg, dry_run=dry_run)
     sessions = run_sessions(cfg, tasks, dry_run=dry_run)
     settled = settle_channels(cfg, dry_run=dry_run) if not dry_run else []
-    after = explorer.credit_snapshot(cfg) if not dry_run else before
 
     summary = {
         "ts": now_iso(), "net": cfg.active_network, "dry_run": dry_run,

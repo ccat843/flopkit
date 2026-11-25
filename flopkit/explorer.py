@@ -16,10 +16,17 @@ from __future__ import annotations
 
 import json
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 
 from .core import Cfg, FlopkitError, ledger_append, utc_day
+
+
+class Unavailable(Exception):
+    """Transient upstream outage (e.g. FLOPScan 503 during early release)."""
+
+    pass
 
 
 def _get(cfg: Cfg, path: str, retries: int = 3) -> dict:
@@ -33,10 +40,16 @@ def _get(cfg: Cfg, path: str, retries: int = 3) -> dict:
             req = urllib.request.Request(url, headers={"User-Agent": "flopkit/0.1"})
             with urllib.request.urlopen(req, timeout=30) as r:
                 return json.loads(r.read().decode())
+        except urllib.error.HTTPError as e:
+            if e.code in (502, 503, 504):
+                last = f"HTTP {e.code}: upstream unavailable"
+            else:
+                raise FlopkitError(f"explorer read failed for {path}: HTTP {e.code}")
+            time.sleep(2 * attempt)
         except Exception as e:  # flaky RPC-backed explorer; retry, then fail-closed
             last = f"{type(e).__name__}: {e}"
             time.sleep(2 * attempt)
-    raise FlopkitError(f"explorer read failed for {path}: {last}")
+    raise Unavailable(f"explorer read failed for {path}: {last}")
 
 
 def inference_spend(cfg: Cfg, address: str | None = None) -> dict:
