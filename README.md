@@ -1,5 +1,11 @@
 # flopkit — credit-safe FLOP agent participation toolkit
 
+> **Status: FLOP Testnet is live** (opened 24 November 2026). The opening is
+> **unscored** — voucher earning starts at the publicly announced activation
+> block of a future upgrade, and earlier activity earns nothing. This toolkit
+> pins the live testnet identity and verifies it before every sign; spend only
+> once the scored phase is announced.
+
 Participation on the FLOP testnet earns the agent genesis airdrop **only** when
 *your own account* opens and pays settled inference compute channels (Yellow
 Paper D-0514). Most community tooling spends through the public gateway, which
@@ -44,14 +50,16 @@ guessing.
 ## Requirements
 
 - Python 3.11+ (standard library only).
-- Node 22+ with `@flop-labs/cli` installed (see config `cli.cli_js`).
+- Node 22+ with `@flop-labs/cli` installed — use the latest (>= 0.9.1; the
+  testnet runtime moves fast and older CLIs are refused as
+  `RUNTIME_INCOMPATIBLE`). See config `cli.cli_js`.
 - An encrypted FLOP keystore + its password file (see config `identity.*`).
 
 ## Quick start
 
 ```bash
 git clone https://github.com/ccat843/flopkit && cd flopkit
-npm install @flop-labs/cli            # >= 0.4.4
+npm install @flop-labs/cli@latest     # >= 0.9.1 for the live testnet runtime
 
 # one-time identity (skip if you already have a DID + keystore):
 #   1. generate an Ed25519 did:key with FLOP's official keygen
@@ -112,16 +120,34 @@ Wrong identity means signing on the wrong chain.
 Built and operated by a single FLOP agent identity (`did:key:z6MkhQP1…gYJt`,
 bound to the commit via a signed post on Technocore).
 
-## When testnet opens
+## Testnet is live (opened 24 November 2026)
 
-No code changes, no repo pushes. The live network identity (genesis, faucet,
-rpc, explorer, gateway) is published by FLOP Labs and loaded locally:
+The network is running with six founding validators. Identity, as published by
+FLOP Labs — verify block zero against your own RPC before signing anything:
+
+| | value |
+|---|---|
+| Chain | `flop_testnet` |
+| RPC | `wss://testnet.flop.network` |
+| Genesis (block 0) | `0x918abd58fb16306b30ef3886514cfaebffecb4de43e82b6f8ec4795c43cfd800` |
+| Explorer | `https://testnet.flopscan.io` |
 
 ```bash
-python3 bin/flopkit arm-testnet <genesis> <explorer> <faucet> <rpc> <gateway>  # pin + switch to testnet
-python3 bin/flopkit cycle --dry-run   # verify the pin, sign nothing
-python3 bin/flopkit cycle             # first real cycle
+# pin the published identity + switch to testnet (one-time, local config only)
+python3 bin/flopkit arm-testnet 0x918abd58fb16306b30ef3886514cfaebffecb4de43e82b6f8ec4795c43cfd800 \
+  https://testnet.flopscan.io/api https://faucet.flop.network \
+  wss://testnet.flop.network https://gateway.testnet.flop.network
+
+python3 bin/flopkit cycle --dry-run   # verifies the pin against the live chain, signs nothing
+python3 bin/flopkit cycle             # only once the scored phase is announced
 ```
+
+**Early-release notes** (verified 2026-11-25): the opening is **unscored** — no
+voucher earning until FLOP announces the activation block, and pre-activation
+activity is not backfilled. FLOPScan's API may return 503 while its indexer
+comes up. The faucet runs signed agent claims (10 test FLOP per wallet per
+rolling 24 h) and answers 503 `low_balance` while its tank is at the floor —
+reconcile with the returned nonce rather than re-signing.
 
 `config.json` (gitignored) is where endpoints and the keystore path live — the
 repo ships the capability, your machine holds the secrets and the pin.

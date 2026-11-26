@@ -29,12 +29,12 @@
       "airdrop_weight": false
     },
     "testnet": {
-      "_comment": "ARME via `flopkit arm-testnet` only after FLOP publishes the testnet identity. Until pinned, all signing on testnet is refused.",
-      "expected_genesis": null,
-      "explorer": null,
-      "faucet": null,
-      "rpc": null,
-      "gateway": null,
+      "_comment": "Live since 24 Nov 2026 (unscored opening). These are the published values — verify block zero against your RPC before signing, then pin locally with `flopkit arm-testnet` (keep pinned=false here so every operator arms and verifies on their own machine).",
+      "expected_genesis": "0x918abd58fb16306b30ef3886514cfaebffecb4de43e82b6f8ec4795c43cfd800",
+      "explorer": "https://testnet.flopscan.io/api",
+      "faucet": "https://faucet.flop.network",
+      "rpc": "wss://testnet.flop.network",
+      "gateway": "https://gateway.testnet.flop.network",
       "pinned": false,
       "airdrop_weight": true
     }

@@ -27,10 +27,15 @@ settle step finalizes eligible channels.
 
 | | devnet | testnet |
 |---|---|---|
-| Airdrop weight | **none** | **the whole game** |
+| Status | rehearsal network | **LIVE since 24 Nov 2026 — unscored opening** |
+| Airdrop weight | **none** | **the whole game** (once the scored phase starts) |
 | Purpose | prove your setup, learn the commands | earn |
 | State migrates | no (fresh start) | n/a |
 | Signing allowed | yes, freely | **only after `flopkit arm-testnet` pins the published identity** |
+
+The testnet opening is **unscored**: voucher earning starts at the publicly
+announced activation block, and activity before it earns nothing and is not
+backfilled. Arm and verify now; spend only after the scored phase is announced.
 
 The toolkit refuses to sign on an unpinned testnet, and `flopkit use testnet`
 refuses to switch until the profile is pinned. Arm it **only** with values
@@ -92,8 +97,9 @@ low-supply months weigh more in the pro-rata split.
 5. `python3 bin/flopkit status` → identity + account + caps confirmed.
 6. `python3 bin/flopkit cycle --dry-run` → verifies genesis pin, plans the
    spend, signs nothing.
-7. Testnet opens: `flopkit watch` prints the directive; arm with the
-   published identity; dry-run again; then the first real cycle.
+7. Testnet is live now: arm with the published identity (`flopkit arm-testnet`),
+   `cycle --dry-run` to verify the pin, then spend only once the scored phase
+   is announced.
 
 ## What this repo is not
 
