@@ -23,7 +23,7 @@ import urllib.request
 from .core import Cfg, FlopkitError, ledger_append, utc_day
 
 
-class Unavailable(Exception):
+class Unavailable(FlopkitError):
     """Transient upstream outage (e.g. FLOPScan 503 during early release)."""
 
     pass

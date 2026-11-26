@@ -27,16 +27,24 @@ def claim_faucet(cfg: Cfg, dry_run: bool = False) -> dict:
         ledger_append({"op": "faucet", "ok": True, "dry_run": True, "net": cfg.active_network})
         return {"dry_run": True}
     try:
-        res = run_cli(cfg, "--network", cfg.active_network, "faucet", "request", cfg.identity["address"], retries=1)
+        # Testnet agent claims are signed (D10); devnet ignores the keystore.
+        res = run_cli(cfg, *keystore_args(cfg), "--network", cfg.active_network,
+                      "faucet", "request", cfg.identity["address"],
+                      env_extra=keystore_env(cfg), retries=1)
     except FlopkitError as e:
         if "cooldown" in str(e) or "retryable" in str(e):
             ledger_append({"op": "faucet", "ok": False, "net": cfg.active_network, "cooldown": True, "note": str(e)[:300]})
             return {"cooldown": True, "note": str(e)[:300]}
         raise
-    if res.get("error") or res.get("retryable"):
-        retry = str(res.get("next") or res.get("error"))
-        ledger_append({"op": "faucet", "ok": False, "net": cfg.active_network, "cooldown": True, "note": retry[:300]})
-        return {"cooldown": True, "note": retry[:300]}
+    # Failures come back as {"ok": false, "code": ..., "message"/"reason": ...} —
+    # e.g. FAUCET_OUTCOME_UNKNOWN with 503 low_balance while the tank is at its
+    # floor. Record as not-granted and continue: spend uses the existing balance.
+    if res.get("ok") is False or res.get("error") or res.get("retryable"):
+        note = str(res.get("message") or res.get("reason") or res.get("error") or "unknown")[:300]
+        code = res.get("code") or ""
+        ledger_append({"op": "faucet", "ok": False, "net": cfg.active_network, "cooldown": True,
+                       "code": code, "note": note})
+        return {"cooldown": True, "code": code, "note": note if not code else f"{code}: {note}"}
     ledger_append({"op": "faucet", "ok": True, "net": cfg.active_network,
                    "tx": res.get("tx_hash"), "amount": res.get("amount")})
     return res

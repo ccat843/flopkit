@@ -144,8 +144,10 @@ def run_cli(cfg: Cfg, *args: str, timeout: int | None = None, env_extra: dict | 
             time.sleep(2)
             continue
         out = proc.stdout.strip()
-        # CLI may print log lines before the JSON blob; find the last {...} block
-        js = _extract_json(out)
+        # CLI may print log lines before the JSON blob; and on failures this CLI
+        # writes the structured payload to STDERR with an empty stdout, so both
+        # streams are candidates.
+        js = _extract_json(out) or _extract_json((proc.stderr or "").strip())
         if js is not None:
             return js
         tail = (out or proc.stderr or "").strip().splitlines()[-3:]
@@ -160,13 +162,13 @@ def run_cli(cfg: Cfg, *args: str, timeout: int | None = None, env_extra: dict | 
 def _extract_json(text: str) -> dict | None:
     if not text:
         return None
-    # The CLI logs noise around JSON; on errors a structured payload may follow
-    # human-readable lines. Try every '{' start candidate (earliest first) and
-    # accept the first that parses to a dict through the end of the text.
+    # The CLI logs noise around JSON and may append text after it. Scan each '{'
+    # candidate and raw_decode, which ignores anything trailing the object.
+    dec = json.JSONDecoder()
     i = text.find("{")
     while i != -1:
         try:
-            obj = json.loads(text[i:])
+            obj, _end = dec.raw_decode(text, i)
             if isinstance(obj, dict):
                 return obj
         except json.JSONDecodeError:

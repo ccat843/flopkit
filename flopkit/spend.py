@@ -119,6 +119,17 @@ def budget_left(cfg: Cfg) -> float:
     return max(0.0, cap - daily_spend_flop())
 
 
+def free_flop(cfg: Cfg) -> float | None:
+    """On-chain free balance in FLOP (read-only). None when unreadable."""
+    try:
+        res = run_cli(cfg, "balance", cfg.identity["address"], "--network", cfg.active_network,
+                      retries=1, timeout=60)
+        v = res.get("free")
+        return float(v) if v is not None else None
+    except FlopkitError:
+        return None
+
+
 def run_direct_session(cfg: Cfg, task: dict, miner: str, model: str, dry_run: bool = False) -> dict:
     caps = cfg.caps
     escrow = float(caps.get("max_flop_per_request", 4.0))
@@ -126,6 +137,13 @@ def run_direct_session(cfg: Cfg, task: dict, miner: str, model: str, dry_run: bo
     if escrow > left:
         raise FlopkitError(f"daily budget exhausted: need {escrow:g}, left {left:g} FLOP today — stopping the cycle (cap respected)")
     ks_env = keystore_env(cfg)
+    if not dry_run:
+        bal = free_flop(cfg)
+        if bal is not None and bal < escrow:
+            raise FlopkitError(
+                f"insufficient balance: {bal:g} FLOP free, {escrow:g} needed for escrow — "
+                "fund via faucet first (testnet faucet is signed, 10 FLOP / 24 h per wallet)"
+            )
     args = [
         *keystore_args(cfg),
         "--network", cfg.active_network,
@@ -141,9 +159,12 @@ def run_direct_session(cfg: Cfg, task: dict, miner: str, model: str, dry_run: bo
                       "title": task.get("title"), "miner": miner, "model": model, "escrow_flop": escrow})
         return {"dry_run": True, "would_run": " ".join(args[:14])}
     res = run_cli(cfg, *args, timeout=int(caps.get("session_timeout_s", 240)), env_extra=ks_env, retries=1)
-    # Fail-closed on result we don't understand:
-    if "error" in res and res.get("error"):
-        raise FlopkitError(f"session run reported error: {res['error']}")
+    # The CLI reports failures as {"ok": false, "code": ..., "message": ...}; a
+    # plain "error" key is not guaranteed. Anything not clearly ok aborts.
+    if res.get("ok") is False or res.get("error"):
+        code = res.get("code") or "SESSION_FAILED"
+        msg = res.get("message") or res.get("error") or "unknown failure"
+        raise FlopkitError(f"session run failed [{code}]: {msg}")
     ledger_append({
         "op": "session", "ok": True, "net": cfg.active_network,
         "title": task.get("title"), "miner": miner, "model": model,
